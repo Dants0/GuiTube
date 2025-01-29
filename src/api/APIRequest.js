@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const requestOptions = {
+export const requestOptions = {
     method: 'GET',
     url: 'https://youtube-mp36.p.rapidapi.com/dl',
     params: {},
@@ -10,10 +10,12 @@ const requestOptions = {
     }
 };
 
-const fetch = async(id) => {
+export const handleSearchVideo = async(id) => {
     requestOptions.params = { id };
     const response = await axios.request(requestOptions)
-    return response;
+    if (response.status === 200 && response.data.status === "ok") {
+        return response.data;
+    } else {
+        throw new Error(`Error fetching YouTube video: ${response.data.msg}`);
+    }
 }
-
-export { fetch };
