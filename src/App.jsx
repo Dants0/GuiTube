@@ -1,53 +1,23 @@
-import { useState, useEffect } from "react";
-import "./App.css";
+import { useState } from "react";
 import Box from "@mui/material/Box";
 import TextField from "@mui/material/TextField";
 import { motion } from "motion/react";
-import Alert from "@mui/material/Alert";
-import Stack from "@mui/material/Stack";
-import { fetch } from "./api/APIRequest";
+import { handleSearchVideo } from "./api/APIRequest";
+import { toast } from "sonner";
+import YoutubeScreen from "./components/YoutubeScreen";
+
+import "./App.css";
 
 function App() {
   const [url, setUrl] = useState("");
-  const [message, setMessage] = useState("");
+  const [data, setData] = useState();
   const [loading, setLoading] = useState(false);
-  const [id, setId] = useState(null);
-  const [response, setResponse] = useState(null);
 
-  useEffect(() => {
-    if (id) {
-      const fetchData = () => {
-        let interval = setInterval(async function () {
-          setLoading(true);
-          const res = await fetch(id); // Chamando a API externa para pegar o link de download
 
-          if (res.status === 200 && res.data.status === "ok") {
-            setLoading(false);
-            setResponse(res.data);
-            clearInterval(interval);
-          } else if (res.status === 200 && res.data.status === "falhou") {
-            setMessage("ID do vídeo inválido");
-            setLoading(false);
-            clearInterval(interval);
-          }
-        }, 1000);
-      };
-      fetchData();
-    }
-  }, [id]);
 
-  useEffect(() => {
-    if (response) {
-      window.location.href = response.link;
-    }
-  }, [response]);
-
-  // To fazendo download
   const handleDownload = async () => {
-    setLoading(true); // Ativando o loading
-    setMessage("");
+    setLoading(true);
     if (!url) {
-      setMessage("Por favor, insira um link válido.");
       setLoading(false);
       return;
     }
@@ -55,32 +25,41 @@ function App() {
     try {
       const videoId = url.split("=")[1];
       if (videoId) {
-        setId(videoId);
+        const response = await handleSearchVideo(videoId)
+        setData(response)
+        toast.success(response.msg)
+        if (response.link) {
+          window.location.href = response.link;
+        }
+        setLoading(false);
       } else {
-        setMessage("ID do vídeo inválido.");
+        toast.error("ID do vídeo inválido!")
         setLoading(false);
       }
-    } catch {
-      setMessage("Erro de conexão. Tente novamente.");
+    } catch (err) {
+      console.log(err);
       setLoading(false);
+      toast.error("Ocorreu um erro de conexão. Tente novamente!")
     }
   };
 
   return (
-    <>
+    <div className="container">
       <Box
         component="form"
         sx={{
           "& > :not(style)": {
             m: 1,
-            width: "70ch",
+            width: "80%",
             "& input": {
               height: "25px",
             },
           },
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
         }}
         noValidate
-        autoComplete="off"
       >
         <div className="inicial">
           <motion.div
@@ -119,14 +98,8 @@ function App() {
         {loading ? "Baixando..." : "Baixar Áudio"}
       </motion.button>
 
-      {message && (
-        <Stack sx={{ width: "100%" }} spacing={2}>
-          <Alert severity={message.includes("sucesso") ? "success" : "error"}>
-            {message}
-          </Alert>
-        </Stack>
-      )}
-    </>
+      {data && <YoutubeScreen url={url} />}
+    </div>
   );
 }
 
